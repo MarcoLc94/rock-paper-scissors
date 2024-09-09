@@ -5,7 +5,7 @@ const chalk = require('chalk');
 
 class KeyGenerator {
   static createKey() {
-    return chalk.yellow(crypto.randomBytes(32)); // 256 bits
+    return crypto.randomBytes(32); // 256 bits
   }
 
   static createHMAC(secretKey, message) {
@@ -57,9 +57,9 @@ class HelpMenu {
       const row = [chalk.bold(playerMove)]; // Emphasize the player move
       for (const opponentMove of availableMoves) {
         if (playerMove === opponentMove) {
-          row.push('Draw');
+          row.push(chalk.gray('Draw'));
         } else {
-          row.push(rules.determineWinner(playerMove, opponentMove).includes('Player') ? 'Win' : 'Lose');
+          row.push(rules.determineWinner(playerMove, opponentMove).includes('Player') ? chalk.green('Win') : chalk.red('Lose'));
         }
       }
       helpTable.push(row);
@@ -95,12 +95,12 @@ class Game {
     }
 
     const playerChoice = this.availableMoves[playerChoiceIndex - 1];
-    console.log(chalk.bgBlack(`Your choice: ${playerChoice}`));
-    console.log(chalk.bgBlack(`Computer choice: ${this.computerMove}`));
+    console.log(chalk.blue(`Your choice: ${playerChoice}`));
+    console.log(chalk.red(`Computer choice: ${this.computerMove}`));
 
     const result = this.rules.determineWinner(playerChoice, this.computerMove);
     console.log(result);
-    console.log(chalk.bgYellow(`HMAC key: ${this.secretKey.toString('hex')}`));
+    console.log(`HMAC key: ${this.secretKey.toString('hex')}`);
   }
 
   showMenu() {
@@ -108,8 +108,8 @@ class Game {
     this.availableMoves.forEach((move, index) => {
       console.log(`${index + 1} - ${move}`);
     });
-    console.log(chalk.bgRed('0 - exit'));
-    console.log(chalk.bgYellow('? - help'));
+    console.log(chalk.red('0 - exit'));
+    console.log(chalk.yellow('? - help'));
   }
 
   getPlayerChoice() {
@@ -118,7 +118,7 @@ class Game {
     while (playerInput !== '0' && playerInput !== '?' && (isNaN(playerInput) || playerInput < 1 || playerInput > this.availableMoves.length)) {
       console.log(chalk.bgRed('Invalid option, please try again.'));
       this.showMenu();
-      playerInput = prompt(chalk.bgGreenBright('Enter your move: '));
+      playerInput = prompt(chalk.bgGreen('Enter your move: '));
     }
 
     if (playerInput === '?') {
