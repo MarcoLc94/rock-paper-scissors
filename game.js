@@ -1,133 +1,133 @@
 const crypto = require('crypto');
 const prompt = require('prompt-sync')();
-const Table = require('cli-table3'); // Importa cli-table3
+const Table = require('cli-table3'); // Import cli-table3
 
 class KeyGenerator {
-  static generateKey() {
+  static createKey() {
     return crypto.randomBytes(32); // 256 bits
   }
 
-  static generateHMAC(key, message) {
-    return crypto.createHmac('sha256', key).update(message).digest('hex');
+  static createHMAC(secretKey, message) {
+    return crypto.createHmac('sha256', secretKey).update(message).digest('hex');
   }
 }
 
-class MoveRules {
-  constructor(moves) {
-    if (moves.length % 2 === 0 || moves.length < 3) {
-      throw new Error('The number of moves must be an odd number greater than or equal to 3.');
+class GameRules {
+  constructor(availableMoves) {
+    if (availableMoves.length % 2 === 0 || availableMoves.length < 3) {
+      throw new Error('The number of moves must be odd and greater than or equal to 3.');
     }
-    this.moves = moves;
+    this.availableMoves = availableMoves;
   }
 
-  getResult(playerMove, computerMove) {
-    const playerIndex = this.moves.indexOf(playerMove);
-    const computerIndex = this.moves.indexOf(computerMove);
-    const half = Math.floor(this.moves.length / 2);
+  determineWinner(playerChoice, computerChoice) {
+    const playerIndex = this.availableMoves.indexOf(playerChoice);
+    const computerIndex = this.availableMoves.indexOf(computerChoice);
+    const middleRange = Math.floor(this.availableMoves.length / 2);
 
     if (playerIndex === computerIndex) {
       return 'Draw';
     }
 
-    const winRange = [];
-    for (let i = 1; i <= half; i++) {
-      winRange.push((playerIndex + i) % this.moves.length);
+    const winningMoves = [];
+    for (let i = 1; i <= middleRange; i++) {
+      winningMoves.push((playerIndex + i) % this.availableMoves.length);
     }
 
-    return winRange.includes(computerIndex) ? 'Player wins!' : 'Computer wins!';
+    return winningMoves.includes(computerIndex) ? 'Player wins!' : 'Computer wins!';
   }
 }
 
-class HelpTable {
-  static generateTable(moves, rules) {
-    // Crea la tabla con encabezados
-    const table = new Table({
-      head: ['Move'].concat(moves), // Encabezados
-      colWidths: Array(moves.length + 1).fill(10) // Ajusta el ancho de las columnas
+class HelpMenu {
+  static showHelpTable(availableMoves, rules) {
+    // Create the table with headers
+    const helpTable = new Table({
+      head: ['Move'].concat(availableMoves), // Headers
+      colWidths: Array(availableMoves.length + 1).fill(10) // Adjust column width
     });
 
-    // Añade las filas de movimientos y resultados
-    for (const move of moves) {
-      const row = [move];
-      for (const opponent of moves) {
-        if (move === opponent) {
+    // Add rows of moves and results
+    for (const playerMove of availableMoves) {
+      const row = [playerMove];
+      for (const opponentMove of availableMoves) {
+        if (playerMove === opponentMove) {
           row.push('Draw');
         } else {
-          row.push(rules.getResult(move, opponent).includes('Player') ? 'Win' : 'Lose');
+          row.push(rules.determineWinner(playerMove, opponentMove).includes('Player') ? 'Win' : 'Lose');
         }
       }
-      table.push(row);
+      helpTable.push(row);
     }
 
-    // Imprime la tabla
-    console.log(table.toString());
+    // Print the table
+    console.log(helpTable.toString());
   }
 }
 
 class Game {
-  constructor(moves) {
-    this.moves = moves;
-    this.rules = new MoveRules(moves);
-    this.key = KeyGenerator.generateKey();
-    this.computerMove = this.moves[Math.floor(Math.random() * this.moves.length)];
-    this.hmac = KeyGenerator.generateHMAC(this.key, this.computerMove);
+  constructor(availableMoves) {
+    this.availableMoves = availableMoves;
+    this.rules = new GameRules(availableMoves);
+    this.secretKey = KeyGenerator.createKey();
+    this.computerMove = this.availableMoves[Math.floor(Math.random() * this.availableMoves.length)];
+    this.hmac = KeyGenerator.createHMAC(this.secretKey, this.computerMove);
   }
 
-  play() {
+  start() {
     console.log(`HMAC: ${this.hmac}`);
-    this.displayMenu();
+    this.showMenu();
 
-    const playerMoveIndex = this.getPlayerMove();
-    if (playerMoveIndex === -1) {
+    const playerChoiceIndex = this.getPlayerChoice();
+    if (playerChoiceIndex === -1) {
       console.log('Exiting the game...');
       return;
     }
 
-    const playerMove = this.moves[playerMoveIndex - 1];
-    console.log(`Your move: ${playerMove}`);
-    console.log(`Computer move: ${this.computerMove}`);
+    const playerChoice = this.availableMoves[playerChoiceIndex - 1];
+    console.log(`Your choice: ${playerChoice}`);
+    console.log(`Computer choice: ${this.computerMove}`);
 
-    const result = this.rules.getResult(playerMove, this.computerMove);
+    const result = this.rules.determineWinner(playerChoice, this.computerMove);
     console.log(result);
-    console.log(`HMAC key: ${this.key.toString('hex')}`);
+    console.log(`HMAC key: ${this.secretKey.toString('hex')}`);
   }
 
-  displayMenu() {
+  showMenu() {
     console.log('Available moves:');
-    this.moves.forEach((move, index) => {
+    this.availableMoves.forEach((move, index) => {
       console.log(`${index + 1} - ${move}`);
     });
     console.log('0 - exit');
     console.log('? - help');
   }
 
-  getPlayerMove() {
-    let move = prompt('Enter your move: ');
+  getPlayerChoice() {
+    let playerInput = prompt('Enter your move: ');
 
-    while (move !== '0' && move !== '?' && (isNaN(move) || move < 1 || move > this.moves.length)) {
-      console.log('Invalid choice, please try again.');
-      this.displayMenu();
-      move = prompt('Enter your move: ');
+    while (playerInput !== '0' && playerInput !== '?' && (isNaN(playerInput) || playerInput < 1 || playerInput > this.availableMoves.length)) {
+      console.log('Invalid option, please try again.');
+      this.showMenu();
+      playerInput = prompt('Enter your move: ');
     }
 
-    if (move === '?') {
-      HelpTable.generateTable(this.moves, this.rules); // Genera la tabla de ayuda con cli-table3
-      return this.getPlayerMove();
+    if (playerInput === '?') {
+      HelpMenu.showHelpTable(this.availableMoves, this.rules); // Show help table with cli-table3
+      return this.getPlayerChoice();
     }
 
-    return parseInt(move);
+    return parseInt(playerInput);
   }
 }
 
-function validateMoves(moves) {
-  if (moves.length < 3 || moves.length % 2 === 0 || new Set(moves).size !== moves.length) {
-    console.error('Error: Provide an odd number of non-repeating moves (>= 3). Example: rock paper scissors');
+function validateMoves(availableMoves) {
+  if (availableMoves.length < 3 || availableMoves.length % 2 === 0 || new Set(availableMoves).size !== availableMoves.length) {
+    console.error('Error: Provide an odd number of non-repeated moves (>= 3). Example: rock paper scissors');
     process.exit(1);
   }
 }
 
-const moves = process.argv.slice(2);
-validateMoves(moves);
+const availableMoves = process.argv.slice(2);
+validateMoves(availableMoves);
 
-const game = new Game(moves);
-game.play();
+const game = new Game(availableMoves);
+game.start();
