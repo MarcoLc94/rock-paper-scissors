@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const prompt = require('prompt-sync')();
+const Table = require('cli-table3'); // Importa cli-table3
 
 class KeyGenerator {
   static generateKey() {
@@ -39,11 +40,13 @@ class MoveRules {
 
 class HelpTable {
   static generateTable(moves, rules) {
-    const table = [];
-    const headers = ['Move'].concat(moves);
+    // Crea la tabla con encabezados
+    const table = new Table({
+      head: ['Move'].concat(moves), // Encabezados
+      colWidths: Array(moves.length + 1).fill(10) // Ajusta el ancho de las columnas
+    });
 
-    table.push(headers.join(' | '));
-
+    // Añade las filas de movimientos y resultados
     for (const move of moves) {
       const row = [move];
       for (const opponent of moves) {
@@ -53,10 +56,11 @@ class HelpTable {
           row.push(rules.getResult(move, opponent).includes('Player') ? 'Win' : 'Lose');
         }
       }
-      table.push(row.join(' | '));
+      table.push(row);
     }
 
-    console.log(table.join('\n'));
+    // Imprime la tabla
+    console.log(table.toString());
   }
 }
 
@@ -107,7 +111,7 @@ class Game {
     }
 
     if (move === '?') {
-      HelpTable.generateTable(this.moves, this.rules);
+      HelpTable.generateTable(this.moves, this.rules); // Genera la tabla de ayuda con cli-table3
       return this.getPlayerMove();
     }
 
