@@ -1,21 +1,22 @@
 const crypto = require('crypto');
 const prompt = require('prompt-sync')();
 const Table = require('cli-table3'); // Import cli-table3
+const chalk = require('chalk');
 
 class KeyGenerator {
   static createKey() {
-    return crypto.randomBytes(32); // 256 bits
+    return chalk.yellow(crypto.randomBytes(32)); // 256 bits
   }
 
   static createHMAC(secretKey, message) {
-    return crypto.createHmac('sha256', secretKey).update(message).digest('hex');
+    return chalk.yellow(crypto.createHmac('sha256', secretKey).update(message).digest('hex'));
   }
 }
 
 class GameRules {
   constructor(availableMoves) {
     if (availableMoves.length % 2 === 0 || availableMoves.length < 3) {
-      throw new Error('The number of moves must be odd and greater than or equal to 3.');
+      throw new Error(chalk.red('The number of moves must be odd and greater than or equal to 3.'));
     }
     this.availableMoves = availableMoves;
   }
@@ -26,7 +27,7 @@ class GameRules {
     const middleRange = Math.floor(this.availableMoves.length / 2);
 
     if (playerIndex === computerIndex) {
-      return 'Draw';
+      return chalk.gray('Draw');
     }
 
     const winningMoves = [];
@@ -34,21 +35,26 @@ class GameRules {
       winningMoves.push((playerIndex + i) % this.availableMoves.length);
     }
 
-    return winningMoves.includes(computerIndex) ? 'Player wins!' : 'Computer wins!';
+    return winningMoves.includes(computerIndex) ? chalk.green('Player wins!') : chalk.red('Computer wins!');
   }
 }
 
 class HelpMenu {
-  static showHelpTable(availableMoves, rules) {
-    // Create the table with headers
+  static showHelpTable(availableMoves, rules, page = 1, pageSize = 5) {
+    const totalMoves = availableMoves.length;
+    const totalPages = Math.ceil(totalMoves / pageSize);
+    const start = (page - 1) * pageSize;
+    const end = Math.min(start + pageSize, totalMoves);
+
+    console.log(chalk.blue(`Displaying page ${page} of ${totalPages}`));
+
     const helpTable = new Table({
-      head: ['Move'].concat(availableMoves), // Headers
-      colWidths: Array(availableMoves.length + 1).fill(10) // Adjust column width
+      head: [chalk.bold('v PC\\User >')].concat(availableMoves), // Headers with emphasis
+      colWidths: Array(availableMoves.length + 1).fill(12) // Adjust column width
     });
 
-    // Add rows of moves and results
     for (const playerMove of availableMoves) {
-      const row = [playerMove];
+      const row = [chalk.bold(playerMove)]; // Emphasize the player move
       for (const opponentMove of availableMoves) {
         if (playerMove === opponentMove) {
           row.push('Draw');
@@ -59,8 +65,13 @@ class HelpMenu {
       helpTable.push(row);
     }
 
-    // Print the table
+    console.log(chalk.blue('Help Table: The results are from your point of view.'));
+    console.log(chalk.blue('Example: If you choose Rock and the computer chooses Paper, you Lose.'));
     console.log(helpTable.toString());
+
+    if (page < totalPages) {
+      console.log(chalk.green('Press Enter to see the next page.'));
+    }
   }
 }
 
@@ -79,17 +90,17 @@ class Game {
 
     const playerChoiceIndex = this.getPlayerChoice();
     if (playerChoiceIndex === -1) {
-      console.log('Exiting the game...');
+      console.log(chalk.red('Exiting the game...'));
       return;
     }
 
     const playerChoice = this.availableMoves[playerChoiceIndex - 1];
-    console.log(`Your choice: ${playerChoice}`);
-    console.log(`Computer choice: ${this.computerMove}`);
+    console.log(chalk.bgBlack(`Your choice: ${playerChoice}`));
+    console.log(chalk.bgBlack(`Computer choice: ${this.computerMove}`));
 
     const result = this.rules.determineWinner(playerChoice, this.computerMove);
     console.log(result);
-    console.log(`HMAC key: ${this.secretKey.toString('hex')}`);
+    console.log(chalk.bgYellow(`HMAC key: ${this.secretKey.toString('hex')}`));
   }
 
   showMenu() {
@@ -97,17 +108,17 @@ class Game {
     this.availableMoves.forEach((move, index) => {
       console.log(`${index + 1} - ${move}`);
     });
-    console.log('0 - exit');
-    console.log('? - help');
+    console.log(chalk.bgRed('0 - exit'));
+    console.log(chalk.bgYellow('? - help'));
   }
 
   getPlayerChoice() {
     let playerInput = prompt('Enter your move: ');
 
     while (playerInput !== '0' && playerInput !== '?' && (isNaN(playerInput) || playerInput < 1 || playerInput > this.availableMoves.length)) {
-      console.log('Invalid option, please try again.');
+      console.log(chalk.bgRed('Invalid option, please try again.'));
       this.showMenu();
-      playerInput = prompt('Enter your move: ');
+      playerInput = prompt(chalk.bgGreenBright('Enter your move: '));
     }
 
     if (playerInput === '?') {
@@ -121,7 +132,7 @@ class Game {
 
 function validateMoves(availableMoves) {
   if (availableMoves.length < 3 || availableMoves.length % 2 === 0 || new Set(availableMoves).size !== availableMoves.length) {
-    console.error('Error: Provide an odd number of non-repeated moves (>= 3). Example: rock paper scissors');
+    console.error(chalk.bgRed('Error: Provide an odd number of non-repeated moves (>= 3). Example: rock paper scissors'));
     process.exit(1);
   }
 }
